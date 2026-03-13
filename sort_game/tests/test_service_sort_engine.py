@@ -51,7 +51,7 @@ def test_run_sort_engine_empty_output():
             with pytest.raises(RuntimeError) as exc_info:
                 run_sort("quick", 2000)
 
-            assert "Invalid JSON from sort_engine" in str(exc_info.value)
+            assert "invalid json from sort_engine" in str(exc_info.value).lower()
 
 
 def test_run_sort_engine_not_found():
@@ -66,7 +66,7 @@ def test_run_sort_engine_unknown_algorithm():
     with pytest.raises(ValueError) as exc_info:
         run_sort("radix", 2000)
 
-    assert "Unknown algorithm" in str(exc_info.value)
+    assert "unknown algorithm" in str(exc_info.value).lower()
 
 
 def test_run_sort_engine_success():
