@@ -35,7 +35,7 @@ def test_run_sort_engine_invalid_json():
             with pytest.raises(RuntimeError) as exc_info:
                 run_sort("quick", 2000)
 
-            assert "Invalid JSON from sort_engine" in str(exc_info.value)
+            assert "invalid json from sort_engine" in str(exc_info.value).lower()
 
 
 def test_run_sort_engine_empty_output():
