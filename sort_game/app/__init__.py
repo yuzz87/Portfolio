@@ -10,6 +10,7 @@ from .routes.page_routes import page_bp
 
 def create_app():
     app = Flask(__name__)
+    app.config.from_object(Config)
 
     app.wsgi_app = ProxyFix(
         app.wsgi_app,
@@ -18,27 +19,23 @@ def create_app():
         x_host=1
     )
 
-    # Config読み込み
-    app.config.from_object(Config)
-
-    # Flask3 JSON設定（重要）
     app.json.ensure_ascii = False
     app.config["JSONIFY_MIMETYPE"] = "application/json; charset=utf-8"
 
-    # Swagger(OpenAPI)
-    app.config["SWAGGER"] = {
-        "openapi": "3.0.2",
-        "title": "Sort Portfolio API",
-        "uiversion": 3
-    }
+    if app.config.get("ENABLE_SWAGGER", True):
+        app.config["SWAGGER"] = {
+            "openapi": "3.0.2",
+            "title": "Sort Portfolio API",
+            "uiversion": 3
+        }
 
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    swagger_path = os.path.join(BASE_DIR, "openapi", "openapi.yaml")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        swagger_path = os.path.join(base_dir, "openapi", "openapi.yaml")
 
-    if not os.path.exists(swagger_path):
-        raise FileNotFoundError(f"Swagger file not found: {swagger_path}")
+        if not os.path.exists(swagger_path):
+            raise FileNotFoundError("Swagger file not found")
 
-    Swagger(app, template_file=swagger_path)
+        Swagger(app, template_file=swagger_path)
 
     app.register_blueprint(page_bp)
     app.register_blueprint(api_bp)

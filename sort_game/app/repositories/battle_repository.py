@@ -31,7 +31,7 @@ def insert_battle(conn, user_id, array_size, benchmark_size):
 
 
 def insert_results(conn, battle_id, results):
-    algorithm_id_map = fetch_algorithm_id_map(conn) # 処理として不完全。変更の余地あり。
+    algorithm_id_map = fetch_algorithm_id_map(conn)
 
     rows = []
     missing_algorithms = []
@@ -81,7 +81,10 @@ def save_battle(user_id, array_size, benchmark_size, results):
         return battle_id
 
     except Exception:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         raise
 
     finally:
@@ -169,7 +172,7 @@ def fetch_statistics(limit):
                         ELSE 999
                     END
                 """,
-                (limit,),
+                (int(limit),),
             )
             return cur.fetchall()
 

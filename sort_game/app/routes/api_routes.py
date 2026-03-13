@@ -38,6 +38,24 @@ def parse_json_body():
     return data, None
 
 
+def validate_optional_user_id(user_id):
+    if user_id is None:
+        return None, None
+
+    if isinstance(user_id, bool):
+        return None, "user_id must be integer or null"
+
+    try:
+        parsed_user_id = int(user_id)
+    except (TypeError, ValueError):
+        return None, "user_id must be integer or null"
+
+    if parsed_user_id < 1:
+        return None, "user_id must be positive integer"
+
+    return parsed_user_id, None
+
+
 def validate_battle_results(results):
     if not isinstance(results, list):
         return "results must be array"
@@ -70,13 +88,13 @@ def validate_battle_results(results):
         if algorithm not in allowed_algorithms:
             return f"results[{i}].algorithm is invalid: {algorithm}"
 
-        if not isinstance(duration_ms, (int, float)):
+        if not isinstance(duration_ms, (int, float)) or isinstance(duration_ms, bool):
             return f"results[{i}].duration_ms must be number"
 
         if duration_ms < 0:
             return f"results[{i}].duration_ms must be >= 0"
 
-        if not isinstance(rank, int):
+        if not isinstance(rank, int) or isinstance(rank, bool):
             return f"results[{i}].rank must be integer"
 
         if rank < 1 or rank > 6:
@@ -92,10 +110,6 @@ def validate_battle_results(results):
 
     return None
 
-
-# ======================================
-# ソートバトル実行 (C++エンジン)
-# ======================================
 
 @api_bp.route("/run-battle", methods=["POST"])
 def run_battle_api():
@@ -119,13 +133,9 @@ def run_battle_api():
         return ok({"ranking": ranking})
     except ValueError as e:
         return ng("INVALID_REQUEST", str(e), 400)
-    except Exception as e:
-        return ng("INTERNAL_ERROR", f"run_battle failed: {str(e)}", 500)
+    except Exception:
+        return ng("INTERNAL_ERROR", "internal server error", 500)
 
-
-# ======================================
-# バトル保存
-# ======================================
 
 @api_bp.route("/battles", methods=["POST"])
 def save_battle_api():
@@ -154,9 +164,11 @@ def save_battle_api():
     if benchmark_size < 100 or benchmark_size > 10000:
         return ng("INVALID_REQUEST", "benchmark_size must be between 100 and 10000", 400)
 
-    user_id = data.get("user_id")
-    results = data["results"]
+    user_id, user_id_error = validate_optional_user_id(data.get("user_id"))
+    if user_id_error:
+        return ng("INVALID_REQUEST", user_id_error, 400)
 
+    results = data["results"]
     validation_error = validate_battle_results(results)
     if validation_error:
         return ng("INVALID_REQUEST", validation_error, 400)
@@ -169,16 +181,11 @@ def save_battle_api():
             results=results
         )
         return ok({"battle_id": battle_id}, 201)
-
     except ValueError as e:
         return ng("INVALID_REQUEST", str(e), 400)
-    except Exception as e:
-        return ng("INTERNAL_ERROR", f"save_battle_result failed: {str(e)}", 500)
+    except Exception:
+        return ng("INTERNAL_ERROR", "internal server error", 500)
 
-
-# ======================================
-# バトル履歴取得
-# ======================================
 
 @api_bp.route("/battles", methods=["GET"])
 def list_battles_api():
@@ -197,13 +204,9 @@ def list_battles_api():
         return ok(data)
     except ValueError as e:
         return ng("INVALID_REQUEST", str(e), 400)
-    except Exception as e:
-        return ng("INTERNAL_ERROR", f"list_battles failed: {str(e)}", 500)
+    except Exception:
+        return ng("INTERNAL_ERROR", "internal server error", 500)
 
-
-# ======================================
-# 統計取得
-# ======================================
 
 @api_bp.route("/statistics", methods=["GET"])
 def statistics_api():
@@ -222,5 +225,5 @@ def statistics_api():
         return ok(stats)
     except ValueError as e:
         return ng("INVALID_REQUEST", str(e), 400)
-    except Exception as e:
-        return ng("INTERNAL_ERROR", f"get_statistics failed: {str(e)}", 500)
+    except Exception:
+        return ng("INTERNAL_ERROR", "internal server error", 500)

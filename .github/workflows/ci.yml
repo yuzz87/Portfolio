@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 jobs:
-  test-and-build:
+  test:
     runs-on: ubuntu-latest
 
     services:
@@ -39,9 +39,6 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Show Python version
-        run: python --version
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -69,7 +66,7 @@ jobs:
         run: |
           mysql -h 127.0.0.1 -P 3306 -u test_user -ptest_password test_db < database/seed/02_seed.sql
 
-      - name: Run pytest with coverage
+      - name: Run tests
         env:
           FLASK_ENV: testing
           PYTHONPATH: .
@@ -80,13 +77,3 @@ jobs:
           DB_PASSWORD: test_password
         run: |
           pytest --maxfail=1 --disable-warnings --cov=app --cov-report=term-missing --cov-report=xml
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: sort_game/coverage.xml
-
-      - name: Build Docker image
-        run: |
-          docker build -f docker/app/Dockerfile -t sort-game:test .

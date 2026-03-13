@@ -20,60 +20,58 @@ ALGORITHMS = (
 )
 
 
-# =====================================
-# C++ソートランキング実行
-# =====================================
 def run_battle(array_size: int) -> List[Dict[str, Any]]:
     if type(array_size) is not int:
         raise ValueError("array_size must be int")
 
-    if not (10 <= array_size <= 1000000):
+    if not (10 <= array_size <= 1_000_000):
         raise ValueError("array_size must be between 10 and 1000000")
 
     results: List[Dict[str, Any]] = []
 
-    for algo in ALGORITHMS:
-        raw = run_sort(algo, array_size)
+    for algorithm_name in ALGORITHMS:
+        raw = run_sort(algorithm_name, array_size)
 
         if not isinstance(raw, dict):
-            raise ValueError(f"run_sort returned invalid result for {algo}")
+            raise ValueError(f"run_sort returned invalid result for {algorithm_name}")
 
-        algorithm = raw.get("algorithm")
+        returned_algorithm = raw.get("algorithm")
         duration_ms = raw.get("duration_ms")
 
-        if algorithm != algo:
-            raise ValueError(f"run_sort returned unexpected algorithm: {algorithm}")
+        if returned_algorithm != algorithm_name:
+            raise ValueError(
+                f"run_sort returned unexpected algorithm: {returned_algorithm}"
+            )
 
         try:
-            duration_ms = float(duration_ms)
+            parsed_duration = float(duration_ms)
         except (TypeError, ValueError):
-            raise ValueError(f"invalid duration_ms returned for {algo}")
+            raise ValueError(f"invalid duration_ms returned for {algorithm_name}")
 
-        if not math.isfinite(duration_ms) or duration_ms < 0:
-            raise ValueError(f"duration_ms must be finite and >= 0 for {algo}")
+        if not math.isfinite(parsed_duration) or parsed_duration < 0:
+            raise ValueError(
+                f"duration_ms must be finite and >= 0 for {algorithm_name}"
+            )
 
         results.append({
-            "algorithm": algorithm,
-            "duration_ms": duration_ms,
+            "algorithm": returned_algorithm,
+            "duration_ms": parsed_duration,
         })
 
-    results.sort(key=lambda x: x["duration_ms"])
+    results.sort(key=lambda row: row["duration_ms"])
 
-    for i, row in enumerate(results, start=1):
-        row["rank"] = i
+    for index, row in enumerate(results, start=1):
+        row["rank"] = index
 
     return results
 
 
-# =====================================
-# バトル保存
-# =====================================
 def save_battle_result(
     user_id: int | None,
     array_size: int,
     benchmark_size: int,
     results: List[Dict[str, Any]],
-):
+) -> int:
     if user_id is not None:
         if type(user_id) is not int or user_id <= 0:
             raise ValueError("user_id must be positive int or null")
@@ -100,30 +98,34 @@ def save_battle_result(
     seen_algorithms = set()
     seen_ranks = set()
 
-    for i, row in enumerate(results):
+    for index, row in enumerate(results):
         if not isinstance(row, dict):
-            raise ValueError(f"results[{i}] must be object")
+            raise ValueError(f"results[{index}] must be object")
 
         algorithm = row.get("algorithm")
         duration_ms = row.get("duration_ms")
         rank = row.get("rank")
 
         if algorithm not in ALGORITHMS:
-            raise ValueError(f"results[{i}].algorithm is invalid: {algorithm}")
+            raise ValueError(f"results[{index}].algorithm is invalid: {algorithm}")
 
         try:
-            duration_ms = float(duration_ms)
+            parsed_duration = float(duration_ms)
         except (TypeError, ValueError):
-            raise ValueError(f"results[{i}].duration_ms must be number")
+            raise ValueError(f"results[{index}].duration_ms must be number")
 
-        if not math.isfinite(duration_ms) or duration_ms < 0:
-            raise ValueError(f"results[{i}].duration_ms must be finite and >= 0")
+        if not math.isfinite(parsed_duration) or parsed_duration < 0:
+            raise ValueError(
+                f"results[{index}].duration_ms must be finite and >= 0"
+            )
 
         if type(rank) is not int:
-            raise ValueError(f"results[{i}].rank must be int")
+            raise ValueError(f"results[{index}].rank must be int")
 
         if not (1 <= rank <= len(ALGORITHMS)):
-            raise ValueError(f"results[{i}].rank must be between 1 and 6")
+            raise ValueError(
+                f"results[{index}].rank must be between 1 and {len(ALGORITHMS)}"
+            )
 
         if algorithm in seen_algorithms:
             raise ValueError(f"duplicate algorithm: {algorithm}")
@@ -135,14 +137,15 @@ def save_battle_result(
 
         normalized_results.append({
             "algorithm": algorithm,
-            "duration_ms": duration_ms,
+            "duration_ms": parsed_duration,
             "rank": rank,
         })
 
-    if seen_ranks != set(range(1, len(ALGORITHMS) + 1)):
+    expected_ranks = set(range(1, len(ALGORITHMS) + 1))
+    if seen_ranks != expected_ranks:
         raise ValueError("rank must be sequential from 1 to 6")
 
-    normalized_results.sort(key=lambda x: x["rank"])
+    normalized_results.sort(key=lambda row: row["rank"])
 
     return save_battle(
         user_id=user_id,
@@ -152,10 +155,7 @@ def save_battle_result(
     )
 
 
-# =====================================
-# バトル履歴取得
-# =====================================
-def list_battles(limit: int = 10):
+def list_battles(limit: int = 10) -> List[Dict[str, Any]]:
     if type(limit) is not int:
         raise ValueError("limit must be int")
 
@@ -165,10 +165,7 @@ def list_battles(limit: int = 10):
     return fetch_recent_battles(limit)
 
 
-# =====================================
-# 統計取得
-# =====================================
-def get_statistics(limit: int = 10):
+def get_statistics(limit: int = 10) -> Dict[str, Dict[str, Any]]:
     if type(limit) is not int:
         raise ValueError("limit must be int")
 
@@ -177,7 +174,15 @@ def get_statistics(limit: int = 10):
 
     rows = fetch_statistics(limit)
 
-    stats: Dict[str, Dict[str, Any]] = {}
+    stats: Dict[str, Dict[str, Any]] = {
+        algorithm: {
+            "avg_duration_ms": 0.0,
+            "win_rate": 0.0,
+            "wins": 0,
+            "plays": 0,
+        }
+        for algorithm in ALGORITHMS
+    }
 
     for row in rows:
         algorithm = row.get("algorithm")
@@ -186,12 +191,11 @@ def get_statistics(limit: int = 10):
 
         plays = int(row.get("plays") or 0)
         wins = int(row.get("wins") or 0)
-        avg = float(row.get("avg_duration_ms") or 0.0)
-
+        avg_duration_ms = float(row.get("avg_duration_ms") or 0.0)
         win_rate = (wins / plays) if plays > 0 else 0.0
 
         stats[algorithm] = {
-            "avg_duration_ms": avg,
+            "avg_duration_ms": avg_duration_ms,
             "win_rate": win_rate,
             "wins": wins,
             "plays": plays,

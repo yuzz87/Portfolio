@@ -1,10 +1,6 @@
-version: "3.9"
-
 services:
   db:
     image: mysql:8.0
-    container_name: sort_db
-    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -24,8 +20,6 @@ services:
     build:
       context: .
       dockerfile: docker/app/Dockerfile
-    container_name: sort_app
-    restart: always
     depends_on:
       db:
         condition: service_healthy
@@ -42,8 +36,6 @@ services:
 
   nginx:
     image: nginx:stable-alpine
-    container_name: sort_nginx
-    restart: always
     depends_on:
       app:
         condition: service_healthy

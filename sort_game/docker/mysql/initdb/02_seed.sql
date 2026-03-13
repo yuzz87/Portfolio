@@ -1,6 +1,4 @@
-USE sort_portfolio;
-
-INSERT INTO algorithms (name, complexity) VALUES
+INSERT IGNORE INTO algorithms (name, complexity) VALUES
 ('bubble', 'O(n^2)'),
 ('selection', 'O(n^2)'),
 ('insertion', 'O(n^2)'),

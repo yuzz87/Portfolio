@@ -1,12 +1,19 @@
+import logging
 import time
+
 import mysql.connector
 from mysql.connector import pooling
+
 from app.config import Config
+
+logger = logging.getLogger(__name__)
 
 _pool = None
 
 
 def _create_pool():
+    Config.validate()
+
     return pooling.MySQLConnectionPool(
         pool_name="sort_portfolio_pool",
         pool_size=10,
@@ -21,20 +28,20 @@ def _create_pool():
         connect_timeout=5,
     )
 
-# battl_repositoryで使用
+
 def get_conn():
     global _pool
 
     if _pool is None:
-        retry = 5
+        retries = 5
 
-        for _ in range(retry):
+        for _ in range(retries):
             try:
                 _pool = _create_pool()
-                print("MySQL connection pool created")
+                logger.info("MySQL connection pool created")
                 break
-            except mysql.connector.Error as e:
-                print(f"MySQL connection failed: {e}")
+            except mysql.connector.Error:
+                logger.warning("MySQL connection failed")
                 time.sleep(2)
         else:
             raise RuntimeError("MySQL connection failed after retries")
@@ -43,5 +50,5 @@ def get_conn():
         conn = _pool.get_connection()
         conn.set_charset_collation("utf8mb4", "utf8mb4_unicode_ci")
         return conn
-    except mysql.connector.Error as e:
-        raise RuntimeError(f"Failed to get MySQL connection from pool: {e}") from e
+    except mysql.connector.Error as exc:
+        raise RuntimeError("Failed to get MySQL connection from pool") from exc
