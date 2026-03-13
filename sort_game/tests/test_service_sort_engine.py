@@ -8,12 +8,12 @@ from app.services.sort_engine_service import run_sort
 
 
 def test_run_sort_engine_subprocess_error():
-    with patch("app.services.sort_engine_service.os.path.exists", return_value=True):
+    with patch("pathlib.Path.exists", return_value=True):
         with patch("app.services.sort_engine_service.subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.CalledProcessError(
                 returncode=1,
                 cmd=["cpp_engine/sort_engine", "quick", "2000"],
-                stderr="engine failed"
+                stderr="engine failed",
             )
 
             with pytest.raises(RuntimeError) as exc_info:
@@ -27,10 +27,10 @@ def test_run_sort_engine_invalid_json():
         args=["cpp_engine/sort_engine", "quick", "2000"],
         returncode=0,
         stdout="not-json",
-        stderr=""
+        stderr="",
     )
 
-    with patch("app.services.sort_engine_service.os.path.exists", return_value=True):
+    with patch("pathlib.Path.exists", return_value=True):
         with patch("app.services.sort_engine_service.subprocess.run", return_value=mock_completed):
             with pytest.raises(RuntimeError) as exc_info:
                 run_sort("quick", 2000)
@@ -43,10 +43,10 @@ def test_run_sort_engine_empty_output():
         args=["cpp_engine/sort_engine", "quick", "2000"],
         returncode=0,
         stdout="",
-        stderr=""
+        stderr="",
     )
 
-    with patch("app.services.sort_engine_service.os.path.exists", return_value=True):
+    with patch("pathlib.Path.exists", return_value=True):
         with patch("app.services.sort_engine_service.subprocess.run", return_value=mock_completed):
             with pytest.raises(RuntimeError) as exc_info:
                 run_sort("quick", 2000)
@@ -55,7 +55,7 @@ def test_run_sort_engine_empty_output():
 
 
 def test_run_sort_engine_not_found():
-    with patch("app.services.sort_engine_service.os.path.exists", return_value=False):
+    with patch("pathlib.Path.exists", return_value=False):
         with pytest.raises(RuntimeError) as exc_info:
             run_sort("quick", 2000)
 
@@ -73,17 +73,17 @@ def test_run_sort_engine_success():
     mock_stdout = json.dumps({
         "algorithm": "quick",
         "size": 2000,
-        "duration_ms": 0.057803
+        "duration_ms": 0.057803,
     })
 
     mock_completed = subprocess.CompletedProcess(
         args=["cpp_engine/sort_engine", "quick", "2000"],
         returncode=0,
         stdout=mock_stdout,
-        stderr=""
+        stderr="",
     )
 
-    with patch("app.services.sort_engine_service.os.path.exists", return_value=True):
+    with patch("pathlib.Path.exists", return_value=True):
         with patch("app.services.sort_engine_service.subprocess.run", return_value=mock_completed):
             result = run_sort("quick", 2000)
 
